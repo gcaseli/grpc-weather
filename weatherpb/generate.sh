@@ -1,0 +1,1 @@
+protoc weatherpb/weather.proto --go_out=plugins=grpc:.
