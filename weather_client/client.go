@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"grpc-weather/weatherpb"
 	"log"
+	"os"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
 
-	fmt.Println("Weather client")
+	elements := os.Args[1:]
+	var city string
+	for _, name := range elements {
+		city += name + " "
+	}
+
+	fmt.Println("Weather client: ", city)
 
 	opts := grpc.WithInsecure()
 
@@ -25,7 +32,7 @@ func main() {
 	c := weatherpb.NewWeatherServiceClient(cc)
 
 	res, err := c.WeatherDetails(context.Background(), &weatherpb.WeatherRequest{
-		Location: "London",
+		Location: city,
 	})
 
 	if err != nil {
