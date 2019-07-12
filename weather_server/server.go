@@ -2,82 +2,49 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
-	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	"grpc-weather/weather_server/providers"
 	"grpc-weather/weatherpb"
 )
 
-const (
-	openWeatherMapURL = "http://api.openweathermap.org/data/2.5/weather"
+type server struct {
+	providers providers.OpenWeatherMapProvider
+}
+
+var (
+	openWeatherMapKey string
 )
 
-type server struct{}
+func init() {
 
-type openWeatherMapResult struct {
-	Name string `json:"name"`
-	Main struct {
-		KelvinTemp    float64 `json:"temp"`
-		KelvinTempMin float64 `json:"temp_min"`
-		KelvinTempMax float64 `json:"temp_max"`
-	} `json:"main"`
-	Sys struct {
-		Country string `json:"country"`
-	} `json:"sys"`
-	Weather []struct {
-		Description string `json:"description"`
-	} `json:"weather"`
+	openWeatherMapKey = os.Getenv("OPEN_WEATHER_KEY")
+	if openWeatherMapKey == "" {
+		log.Fatal("There isn't OPEN_WEATHER_KEY environment")
+	}
 }
 
 func (server *server) WeatherDetails(context context.Context, req *weatherpb.WeatherRequest) (*weatherpb.WeatherResponse, error) {
 
-	key := os.Getenv("OPEN_WEATHER_KEY")
-	if key == "" {
-		log.Fatal("There isn't OPEN_WEATHER_KEY environment")
-	}
-
-	queryURL := fmt.Sprintf("%s?q=%s&appid=%s", openWeatherMapURL, url.QueryEscape(req.GetLocation()), key)
-
-	response, err := http.Get(queryURL)
+	weatherInfo, err := server.providers.Search(req.GetLocation())
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
-
-	if response.StatusCode != 200 {
-		respErr := fmt.Errorf("Unexpected response: %s", response.Status)
-		log.Fatalln(fmt.Sprintf("Request failed: %v", respErr))
-	}
-
-	defer response.Body.Close()
-
-	body, err := ioutil.ReadAll(response.Body)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	var result openWeatherMapResult
-	json.Unmarshal(body, &result)
-
-	fmt.Println(string(body))
-	fmt.Println(result)
 
 	data := &weatherpb.Weather{
-		Description:    "Very cold",
-		Found:          true,
-		Temperature:    11.0,
-		TemperatureMax: 12.0,
-		TemperatureMin: 5.0,
+		Description:    weatherInfo.Description,
+		Found:          weatherInfo.Found,
+		Temperature:    weatherInfo.Temperature,
+		TemperatureMax: weatherInfo.TemperatureMax,
+		TemperatureMin: weatherInfo.TemperatureMin,
+		Country:        weatherInfo.Country,
 	}
 
 	return &weatherpb.WeatherResponse{
@@ -99,7 +66,10 @@ func main() {
 	opts := []grpc.ServerOption{}
 
 	s := grpc.NewServer(opts...)
-	weatherpb.RegisterWeatherServiceServer(s, &server{})
+
+	server := &server{providers: providers.OpenWeatherMap{WeatherKey: openWeatherMapKey}}
+
+	weatherpb.RegisterWeatherServiceServer(s, server)
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
 
@@ -112,6 +82,7 @@ func main() {
 
 	// Wait for control C to exit
 	ch := make(chan os.Signal, 1)
+
 	signal.Notify(ch, os.Interrupt)
 
 	// Block until a signal is received

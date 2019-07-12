@@ -9,7 +9,8 @@ message Weather{
     double temperature_min = 2;
     double temperature_max = 3;
     string description = 4;
-    bool found = 5;
+    string country = 5;
+    bool found = 6;
 }
 
 message WeatherRequest{

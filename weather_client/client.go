@@ -39,5 +39,10 @@ func main() {
 		log.Fatalf("error when creating blog: %v", err)
 	}
 
-	fmt.Printf("Temperature description is: %v\n", res.Weather.GetDescription())
+	if res.Weather.Found {
+		fmt.Printf("Description is: %v\n", res.Weather.GetDescription())
+		fmt.Printf("Temperature is: %v\n", res.Weather.GetTemperature())
+		fmt.Printf("Temperature Max is: %v\n", res.Weather.GetTemperatureMax())
+		fmt.Printf("Temperature Min is: %v\n", res.Weather.GetTemperatureMin())
+	}
 }
