@@ -1,5 +1,7 @@
 package main
 
+// a estrutura 'server' possui um dado provider que é uma interface 'OpenWeatherMapProvider'
+// a estrutura é
 import (
 	"context"
 	"fmt"
@@ -7,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -16,7 +19,7 @@ import (
 )
 
 type server struct {
-	providers providers.OpenWeatherMapProvider
+	provider providers.OpenWeatherMapProvider
 }
 
 var (
@@ -33,11 +36,12 @@ func init() {
 
 func (server *server) WeatherDetails(context context.Context, req *weatherpb.WeatherRequest) (*weatherpb.WeatherResponse, error) {
 
-	weatherInfo, err := server.providers.Search(req.GetLocation())
+	timeNow := time.Now()
+	weatherInfo, err := server.provider.Search(req.GetLocation())
 	if err != nil {
 		return nil, err
 	}
-
+	defer elapsed(timeNow)
 	data := &weatherpb.Weather{
 		Description:    weatherInfo.Description,
 		Found:          weatherInfo.Found,
@@ -57,7 +61,6 @@ func main() {
 	// if we crash the go code, we get the file name and the line number
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	logar("WeatherService start")
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -67,14 +70,14 @@ func main() {
 
 	s := grpc.NewServer(opts...)
 
-	server := &server{providers: providers.OpenWeatherMap{WeatherKey: openWeatherMapKey}}
+	server := &server{provider: providers.OpenWeatherMap{WeatherKey: openWeatherMapKey}}
 
 	weatherpb.RegisterWeatherServiceServer(s, server)
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
 
 	go func() {
-		logar("Starting server....")
+		logar("Server started and listen port 50051....")
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Failed to listen: %v", err)
 		}
@@ -97,4 +100,8 @@ func main() {
 
 func logar(formato string, valores ...interface{}) {
 	log.Printf(fmt.Sprintf("%s\n", formato), valores...)
+}
+
+func elapsed(start time.Time) {
+	log.Printf("[OpenWeatherMap] Request took %02f seconds\n", time.Since(start).Seconds())
 }

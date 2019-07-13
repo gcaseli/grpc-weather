@@ -1,5 +1,11 @@
 package providers
 
+// há uma interface OpenWeatherMapProvider com definição de receber uma string e retornar uma estrutra ou um erro
+// foi definida uma estrutura pública OpenWeatherMap tem tem a key como atributo
+// há uma função Search que é a mesma definição da interface OpenWeatherMapProvider para a estrutura OpenWeatherMap
+// há uma estrutura openWeatherMapResult não publica que realiza a conversão do retorno do serviço
+// há uma estrutura WeatherInfo pública que retorna ao servidor as informações processadas
+
 import (
 	"encoding/json"
 	"fmt"
@@ -59,8 +65,6 @@ func (openweathermap OpenWeatherMap) Search(query string) (WeatherInfo, error) {
 
 	var result openWeatherMapResult
 	json.Unmarshal(body, &result)
-
-	fmt.Println(string(body))
 
 	return result.asWeatherInfo(), nil
 }

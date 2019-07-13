@@ -12,6 +12,10 @@ import (
 
 func main() {
 
+	if len(os.Args) == 0 {
+		log.Fatalf("Missing location parameter")
+	}
+
 	elements := os.Args[1:]
 	var city string
 	for _, name := range elements {
@@ -40,9 +44,12 @@ func main() {
 	}
 
 	if res.Weather.Found {
-		fmt.Printf("Description is: %v\n", res.Weather.GetDescription())
-		fmt.Printf("Temperature is: %v\n", res.Weather.GetTemperature())
-		fmt.Printf("Temperature Max is: %v\n", res.Weather.GetTemperatureMax())
-		fmt.Printf("Temperature Min is: %v\n", res.Weather.GetTemperatureMin())
+		fmt.Printf("Description is: %s\n", res.Weather.GetDescription())
+		fmt.Printf("Temperature is: %.1fºC\n", res.Weather.GetTemperature())
+		fmt.Printf("Temperature Max is: %.1fºC\n", res.Weather.GetTemperatureMax())
+		fmt.Printf("Temperature Min is: %.1fºC\n", res.Weather.GetTemperatureMin())
+		fmt.Printf("Country is: %s\n", res.Weather.GetCountry())
+	} else {
+		fmt.Printf("Could not find information for location %s\n", city)
 	}
 }
